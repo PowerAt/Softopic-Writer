@@ -148,7 +148,12 @@ editor.addKeyMap({
     // keyboard shortcut
     'Ctrl-L': function(cm) {
         cm.replaceSelection(selectionChanger(cm.getSelection(),'<kbd>','</kbd>'));
-    }
+    },
+    // link
+    'Ctrl-o': function(cm) {
+        cm.replaceSelection(selectionChanger(cm.getSelection(),'[',']()'));
+    },
+   
 });
 
 document.addEventListener('drop', function(e) {
@@ -169,10 +174,15 @@ function saveAsMarkdown() {
 }
 
 //Print the document named as the document title encoded to avoid strange chars and spaces
-function saveAsHtml() {
-    save(document.getElementById('out').innerHTML, document.title.replace(/[`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/\s]/gi, '') + ".html");
-}
 
+function saveAsHtml() {
+    
+    // save the file as html file with extension .html and the file code using innerHTML
+
+    save(document.getElementById('out').innerHTML , document.title.replace(/[`~!@#$%^&*()_|+\-=?;:'",.<>\{\}\[\]\\\/\s]/gi, '') + ".html",);
+    // Now add the style tag to the head using head.innerHTML
+}
+// 
 document.getElementById('saveas-markdown').addEventListener('click', function() {
     saveAsMarkdown();
     hideMenu();
@@ -204,6 +214,48 @@ function save(code, name) {
 
 var menuVisible = false;
 var menu = document.getElementById('menu');
+
+function addimage() {
+    // add image on editor from disk storage 
+    var input = document.createElement('input');
+    input.type = 'file';
+    input.onchange = function(e) {
+        var file = e.target.files[0];
+        var reader = new FileReader();
+        reader.onload = function(e) {
+            editor.replaceSelection('![](data:' + file.type + ';base64,' + btoa(reader.result) + ')');
+        };
+        reader.readAsBinaryString(file);
+    }
+    input.click();
+    // and also make the text shorter of the image
+    editor.focus();
+
+    hideMenu();
+
+    
+}
+
+function sync() {
+    // synce it using google drive 
+    var file = new File([editor.getValue()], "file.md", {
+        type: "text/plain"
+    });
+    var url = 'https://www.googleapis.com/upload/drive/v2/files?uploadType=media';
+    var xhr = new XMLHttpRequest();
+    xhr.open('POST', url, true);
+    xhr.setRequestHeader('Authorization', 'Bearer ' + gapi.auth.getToken().access_token);
+    xhr.setRequestHeader('Content-Type', 'text/plain');
+    xhr.onload = function(e) {
+        if (xhr.status == 200) {
+            var response = JSON.parse(xhr.responseText);
+            var url = 'https://docs.google.com/viewer?url=' + response.alternateLink;
+            window.open(url);
+        }
+    };
+    xhr.send(file);
+    hideMenu();
+}
 
 function showMenu() {
     menuVisible = true;
